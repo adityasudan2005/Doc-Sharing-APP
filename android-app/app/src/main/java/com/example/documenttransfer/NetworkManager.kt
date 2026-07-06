@@ -89,10 +89,16 @@ class NetworkManager(private val context: Context) {
             // 2. Try configured IP via Wi-Fi if IP is not empty
             val cleanIp = configuredIp.trim()
             if (cleanIp.isNotEmpty()) {
-                val wifiUrl = if (cleanIp.startsWith("http")) {
-                    if (cleanIp.endsWith("/")) cleanIp else "$cleanIp/"
-                } else {
-                    "http://$cleanIp:8000/"
+                val wifiUrl = when {
+                    cleanIp.startsWith("http://") || cleanIp.startsWith("https://") -> {
+                        if (cleanIp.endsWith("/")) cleanIp else "$cleanIp/"
+                    }
+                    cleanIp.contains(":") -> {
+                        "http://$cleanIp/"
+                    }
+                    else -> {
+                        "http://$cleanIp:8000/"
+                    }
                 }
 
                 val wifiAvailable = async { pingServer(wifiUrl) }
