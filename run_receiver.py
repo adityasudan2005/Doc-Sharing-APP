@@ -10,8 +10,18 @@ def run_adb_reverse():
     
     # Check if adb is in PATH
     adb_path = shutil.which("adb")
+    
+    # On Windows, try to find ADB in the default Android SDK location
+    if not adb_path and sys.platform.startswith("win"):
+        local_app_data = os.environ.get("LOCALAPPDATA", "")
+        if local_app_data:
+            default_adb = os.path.join(local_app_data, "Android", "Sdk", "platform-tools", "adb.exe")
+            if os.path.exists(default_adb):
+                adb_path = default_adb
+                print(f"[USB SETUP] Found ADB in Android Sdk path: {adb_path}")
+
     if not adb_path:
-        print("[USB WARNING] 'adb' command not found in your system PATH.")
+        print("[USB WARNING] 'adb' command not found in your system PATH or Android Sdk folder.")
         print("              USB (Wired) mode won't work unless ADB is installed")
         print("              and you have enabled USB debugging on your phone.")
         print("              (Wi-Fi mode will still work fine!)")
@@ -19,9 +29,9 @@ def run_adb_reverse():
         return
 
     try:
-        # Run ADB reverse tcp:8000 tcp:8000
+        # Run ADB reverse tcp:8000 tcp:8000 using discovered path
         result = subprocess.run(
-            ["adb", "reverse", "tcp:8000", "tcp:8000"],
+            [adb_path, "reverse", "tcp:8000", "tcp:8000"],
             capture_output=True,
             text=True
         )
