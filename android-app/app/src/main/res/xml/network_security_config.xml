@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- Localhost for ADB reverse port forwarding -->
+        <domain includeSubdomains="true">127.0.0.1</domain>
+        <domain includeSubdomains="true">localhost</domain>
+        <!-- Android emulator default loopback to host PC -->
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        
+        <!-- Local area networks (IPs 192.168.X.X, 10.X.X.X, 172.16.X.X) -->
+        <domain includeSubdomains="true">192.168.0.0/16</domain>
+        <domain includeSubdomains="true">10.0.0.0/8</domain>
+        <domain includeSubdomains="true">172.16.0.0/12</domain>
+    </domain-config>
+</network-security-config>

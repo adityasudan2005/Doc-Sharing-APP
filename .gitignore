@@ -1,0 +1,41 @@
+# Android build outputs and caches
+.gradle/
+build/
+app/build/
+*.apk
+*.aar
+local.properties
+.navigation/
+captures/
+.externalNativeBuild/
+.cxx/
+cmake/
+
+# Kotlin / IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# Python virtual env, caches, and uploads
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.venv
+/receiver/uploads/*
+/receiver/processed/*
+!/receiver/uploads/.gitkeep
+!/receiver/processed/.gitkeep
+transfer_log.txt
+config.json
+
+# System files
+.DS_Store
+Thumbs.db
