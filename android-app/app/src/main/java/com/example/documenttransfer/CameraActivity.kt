@@ -94,6 +94,9 @@ class CameraActivity : AppCompatActivity() {
         cameraProviderFuture.addListener({
             val cameraProvider: ProcessCameraProvider = cameraProviderFuture.get()
 
+            // Set scaleType to FIT_CENTER so the preview boundaries match the captured output exactly
+            binding.viewFinder.scaleType = androidx.camera.view.PreviewView.ScaleType.FIT_CENTER
+
             // Preview View config
             val preview = Preview.Builder().build().also {
                 it.setSurfaceProvider(binding.viewFinder.surfaceProvider)
