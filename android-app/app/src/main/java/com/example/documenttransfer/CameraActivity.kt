@@ -75,6 +75,10 @@ class CameraActivity : AppCompatActivity() {
         // Set up click listeners
         binding.btnCapture.setOnClickListener { takePhotoAndUpload() }
         binding.btnSettings.setOnClickListener { showSettingsDialog() }
+        binding.btnRefresh.setOnClickListener {
+            scanServer()
+            Toast.makeText(this, "Scanning for laptop server...", Toast.LENGTH_SHORT).show()
+        }
 
         // Start initial server connectivity scan
         scanServer()
