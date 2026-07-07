@@ -27,6 +27,10 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.IOException
 import java.util.concurrent.TimeUnit
+import java.net.NetworkInterface
+import java.net.Inet4Address
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 
 interface HealthApi {
     @GET("ping")
@@ -120,11 +124,80 @@ class NetworkManager(private val context: Context) {
                 return@launch
             }
 
+            // 4. Fallback: Auto Scan Subnet!
+            // If USB and configured IP both failed, scan the local Wi-Fi subnet!
+            val localIp = getLocalIpAddress()
+            if (localIp != null) {
+                val lastDot = localIp.lastIndexOf('.')
+                if (lastDot > 0) {
+                    val prefix = localIp.substring(0, lastDot + 1)
+                    val discoveredUrl = scanSubnet(prefix)
+                    if (discoveredUrl != null) {
+                        withContext(Dispatchers.Main) {
+                            onResult(discoveredUrl, "wifi")
+                        }
+                        return@launch
+                    }
+                }
+            }
+
             // All checks failed
             withContext(Dispatchers.Main) {
                 onResult(null, null)
             }
         }
+    }
+
+    private fun getLocalIpAddress(): String? {
+        try {
+            val interfaces = NetworkInterface.getNetworkInterfaces()
+            while (interfaces.hasMoreElements()) {
+                val networkInterface = interfaces.nextElement()
+                if (networkInterface.isLoopback || !networkInterface.isUp) continue
+                
+                val addresses = networkInterface.inetAddresses
+                while (addresses.hasMoreElements()) {
+                    val address = addresses.nextElement()
+                    if (address is Inet4Address && !address.isLoopbackAddress) {
+                        val ip = address.hostAddress
+                        if (ip != null && (ip.startsWith("192.168.") || ip.startsWith("10.") || ip.startsWith("172."))) {
+                            return ip
+                        }
+                    }
+                }
+            }
+        } catch (ex: Exception) {
+            ex.printStackTrace()
+        }
+        return null
+    }
+
+    private suspend fun scanSubnet(prefix: String): String? = withContext(Dispatchers.IO) {
+        val channel = Channel<String?>(1)
+        val jobs = mutableListOf<kotlinx.coroutines.Job>()
+        
+        for (i in 1..254) {
+            val job = launch {
+                val testUrl = "http://$prefix$i:8000/"
+                if (pingServer(testUrl)) {
+                    channel.trySend(testUrl)
+                }
+            }
+            jobs.add(job)
+        }
+        
+        val timerJob = launch {
+            delay(2200) // 2.2 seconds timeout
+            channel.trySend(null)
+        }
+        
+        val resultUrl = channel.receive()
+        
+        // Cleanup to prevent leaking coroutines
+        jobs.forEach { it.cancel() }
+        timerJob.cancel()
+        
+        resultUrl
     }
 
     private fun pingServer(baseUrl: String): Boolean {

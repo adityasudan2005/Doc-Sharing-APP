@@ -137,6 +137,12 @@ class CameraActivity : AppCompatActivity() {
                 activeClientMode = mode
                 binding.textServerStatus.text = "Server: Connected (${mode.uppercase()})"
                 binding.textServerStatus.setTextColor(ContextCompat.getColor(this, android.R.color.holo_green_light))
+                
+                // Save discovered Wi-Fi IP back to settings so it is immediately pinged next time
+                if (mode == "wifi") {
+                    val cleanHost = url.replace("http://", "").replace("https://", "").split(":")[0].replace("/", "")
+                    sharedPreferences.edit().putString(KEY_SERVER_IP, cleanHost).apply()
+                }
             } else {
                 activeClientMode = "offline"
                 binding.textServerStatus.text = "Server: Offline"
