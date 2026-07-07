@@ -79,18 +79,7 @@ class NetworkManager(private val context: Context) {
         onResult: (activeUrl: String?, mode: String?) -> Unit
     ) {
         scope.launch {
-            // 1. Try USB Loopback first (highest priority)
-            val usbUrl = "http://127.0.0.1:8000/"
-            val usbAvailable = async { pingServer(usbUrl) }
-            
-            if (usbAvailable.await()) {
-                withContext(Dispatchers.Main) {
-                    onResult(usbUrl, "usb")
-                }
-                return@launch
-            }
-
-            // 2. Try configured IP via Wi-Fi if IP is not empty
+            // 1. Try configured IP via Wi-Fi if IP is not empty
             val cleanIp = configuredIp.trim()
             if (cleanIp.isNotEmpty()) {
                 val wifiUrl = when {
