@@ -2,12 +2,11 @@ import os
 import sys
 import subprocess
 import shutil
+import time
+import threading
 
 def run_adb_reverse():
-    """Attempts to configure ADB reverse port forwarding for USB mode."""
-    print("----------------------------------------------------------------")
-    print("[USB SETUP] Configuring USB reverse port forwarding...")
-    
+    """Attempts to configure ADB reverse port forwarding in a background loop."""
     # Check if adb is in PATH
     adb_path = shutil.which("adb")
     
@@ -21,6 +20,7 @@ def run_adb_reverse():
                 print(f"[USB SETUP] Found ADB in Android Sdk path: {adb_path}")
 
     if not adb_path:
+        print("----------------------------------------------------------------")
         print("[USB WARNING] 'adb' command not found in your system PATH or Android Sdk folder.")
         print("              USB (Wired) mode won't work unless ADB is installed")
         print("              and you have enabled USB debugging on your phone.")
@@ -28,23 +28,38 @@ def run_adb_reverse():
         print("----------------------------------------------------------------\n")
         return
 
-    try:
-        # Run ADB reverse tcp:8000 tcp:8000 using discovered path
-        result = subprocess.run(
-            [adb_path, "reverse", "tcp:8000", "tcp:8000"],
-            capture_output=True,
-            text=True
-        )
-        if result.returncode == 0:
-            print("[USB SUCCESS] Forwarded phone port 8000 to laptop port 8000 via USB.")
-            print("              You can now plug in your phone with USB debugging enabled!")
-        else:
-            print("[USB INFO] Could not configure ADB port forwarding.")
-            print(f"           Reason: {result.stderr.strip()}")
-            print("           Make sure your phone is connected and USB debugging is enabled.")
-    except Exception as e:
-        print(f"[USB ERROR] Failed to run adb command: {e}")
+    # Start background thread to keep forwarding active
+    def adb_loop():
+        # Keep track of active forwarding state to avoid spamming successful logs
+        last_state_success = None
+        while True:
+            try:
+                result = subprocess.run(
+                    [adb_path, "reverse", "tcp:8000", "tcp:8000"],
+                    capture_output=True,
+                    text=True
+                )
+                if result.returncode == 0:
+                    if not last_state_success:
+                        print("\n[USB SUCCESS] ADB reverse port forwarding active! (Phone plugged in)")
+                        last_state_success = True
+                else:
+                    if last_state_success or last_state_success is None:
+                        # Print only once when connection drops
+                        print("\n[USB INFO] Waiting for USB device... (Phone unplugged or debugging disabled)")
+                        last_state_success = False
+            except Exception as e:
+                print(f"\n[USB ERROR] Failed in background ADB task: {e}")
+                break
+            time.sleep(3)
+
+    print("----------------------------------------------------------------")
+    print("[USB SETUP] Starting background USB device monitor...")
+    print("            (Will auto-connect whenever you plug in your phone)")
     print("----------------------------------------------------------------\n")
+    
+    t = threading.Thread(target=adb_loop, daemon=True)
+    t.start()
 
 def start_server():
     """Starts the FastAPI server."""
